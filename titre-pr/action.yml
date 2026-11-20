@@ -1,0 +1,41 @@
+name: Constance — titre de PR
+description: Vérifie que le titre de la pull request suit Conventional Commits, propose une correction sinon, et prévient si le réglage de fusion en squash du dépôt peut l'ignorer.
+author: Carolinedanslesnuages
+
+inputs:
+  types:
+    description: Types autorisés, séparés par des espaces.
+    default: "feat fix perf refactor docs test build ci chore style revert"
+  ignorer-bots:
+    description: Ne pas bloquer les PR ouvertes par un robot (Dependabot, Renovate…) dont le titre n'est pas conforme.
+    default: "true"
+  verifier-reglage-squash:
+    description: Lire le réglage de fusion en squash du dépôt et prévenir s'il n'utilise pas le titre de la PR (lisible seulement avec un jeton qui a les droits d'administration).
+    default: "true"
+  jeton:
+    description: Jeton utilisé pour lire le réglage de fusion.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Lire le réglage de fusion en squash
+      id: reglage
+      if: inputs.verifier-reglage-squash == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.jeton }}
+        DEPOT: ${{ github.repository }}
+      run: |
+        valeur=$(gh api "repos/$DEPOT" --jq '.squash_merge_commit_title // empty' 2>/dev/null || true)
+        echo "valeur=$valeur" >> "$GITHUB_OUTPUT"
+
+    - name: Vérifier le titre
+      shell: bash
+      env:
+        TITRE: ${{ github.event.pull_request.title }}
+        AUTEUR: ${{ github.event.pull_request.user.login }}
+        TYPES: ${{ inputs.types }}
+        IGNORER_BOTS: ${{ inputs.ignorer-bots }}
+        REGLAGE_SQUASH: ${{ steps.reglage.outputs.valeur }}
+      run: bash "${{ github.action_path }}/verifier.sh"

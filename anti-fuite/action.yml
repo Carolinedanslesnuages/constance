@@ -1,0 +1,46 @@
+name: Constance — anti-fuite
+description: Cherche des secrets (clés, jetons, mots de passe) avec gitleaks, binaire officiel vérifié par son empreinte. Sur une PR, seuls ses commits sont analysés ; ailleurs, tout l'historique.
+author: Carolinedanslesnuages
+
+inputs:
+  tout-l-historique:
+    description: Analyser tout l'historique même sur une pull request.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Installer gitleaks 8.30.1 (empreinte vérifiée)
+      shell: bash
+      run: |
+        case "$RUNNER_OS-$RUNNER_ARCH" in
+          Linux-X64)   fichier=gitleaks_8.30.1_linux_x64.tar.gz;   empreinte=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb ;;
+          Linux-ARM64) fichier=gitleaks_8.30.1_linux_arm64.tar.gz; empreinte=e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080 ;;
+          *) echo "::error title=Anti-fuite::Machine non prise en charge : $RUNNER_OS-$RUNNER_ARCH (Linux x64 ou ARM64 seulement)."; exit 1 ;;
+        esac
+        cd "$RUNNER_TEMP"
+        curl -sSfL -o gitleaks.tgz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/$fichier"
+        echo "$empreinte  gitleaks.tgz" | sha256sum -c -
+        tar -xzf gitleaks.tgz gitleaks
+
+    - name: Chercher des secrets
+      shell: bash
+      env:
+        BASE: ${{ github.event.pull_request.base.sha }}
+        TOUT: ${{ inputs.tout-l-historique }}
+      run: |
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "::error title=Anti-fuite::Le dépôt n'est pas récupéré : ajoutez « actions/checkout » avec « fetch-depth: 0 » avant ce contrôle."
+          exit 1
+        fi
+        if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+          echo "::error title=Anti-fuite::Historique incomplet : réglez « fetch-depth: 0 » sur actions/checkout."
+          exit 1
+        fi
+        if [ -n "$BASE" ] && [ "$TOUT" != "true" ]; then
+          echo "Analyse des commits de la PR ($BASE..HEAD)"
+          "$RUNNER_TEMP/gitleaks" git --redact --verbose --log-opts="$BASE..HEAD" .
+        else
+          echo "Analyse de tout l'historique"
+          "$RUNNER_TEMP/gitleaks" git --redact --verbose .
+        fi
