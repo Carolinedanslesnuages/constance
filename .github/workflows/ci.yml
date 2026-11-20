@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests et shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Configurer git pour les dépôts d'essai
+        run: |
+          git config --global user.email "essai@exemple.fr"
+          git config --global user.name "essai"
+          git config --global init.defaultBranch main
+      - name: Tests
+        run: bash tests/lancer.sh
+      - name: shellcheck
+        run: shellcheck -x taille-fichiers/verifier.sh titre-pr/verifier.sh tests/*.sh
+
+  # Constance applique ses propres contrôles à ses PR.
+  titre:
+    name: Titre de PR (Conventional Commits)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./titre-pr
+
+  taille:
+    name: Taille des fichiers (une responsabilité par fichier)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./taille-fichiers
+        with:
+          extensions: "sh"
+
+  anti-fuite:
+    name: Anti-fuite (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./anti-fuite

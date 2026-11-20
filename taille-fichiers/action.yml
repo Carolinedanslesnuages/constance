@@ -1,0 +1,60 @@
+name: Constance — taille des fichiers
+description: Un fichier, une responsabilité. Bloque un fichier de code ou de test trop long, tolère un fichier long existant tant qu'il ne grossit pas (même renommé), prévient avant la limite.
+author: Carolinedanslesnuages
+
+inputs:
+  max-code:
+    description: Lignes non vides maximum pour un fichier de code.
+    default: "400"
+  max-test:
+    description: Lignes non vides maximum pour un fichier de test.
+    default: "600"
+  seuil-avertissement:
+    description: Pourcentage de la limite à partir duquel un avertissement est affiché.
+    default: "90"
+  extensions:
+    description: Extensions comptées, séparées par des espaces.
+    default: "ts tsx js jsx mjs cjs mts cts vue py"
+  exclusions:
+    description: Motifs ignorés, séparés par des espaces (comparés au chemin précédé de « / »).
+    default: "*/migrations/* *.d.ts *.min.js"
+  motifs-test:
+    description: Motifs qui désignent un fichier de test, séparés par des espaces.
+    default: "*.spec.* *.test.* */tests/* */test/* */__tests__/* */test_*.py *_test.py"
+  base:
+    description: Commit de base à comparer. Par défaut, la base de la pull request.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Récupérer le commit de base
+      id: base
+      shell: bash
+      env:
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+      run: |
+        if [ -z "$BASE" ]; then
+          echo "::notice title=Taille des fichiers::Pas de pull request : rien à comparer, contrôle ignoré."
+          echo "ignorer=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "::error title=Taille des fichiers::Le dépôt n'est pas récupéré : ajoutez « actions/checkout » avant ce contrôle."
+          exit 1
+        fi
+        git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch --no-tags --depth=1 origin "$BASE"
+        echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Compter les lignes des fichiers modifiés
+      if: steps.base.outputs.ignorer != 'true'
+      shell: bash
+      env:
+        BASE: ${{ steps.base.outputs.sha }}
+        MAX_CODE: ${{ inputs.max-code }}
+        MAX_TEST: ${{ inputs.max-test }}
+        SEUIL_AVERTISSEMENT: ${{ inputs.seuil-avertissement }}
+        EXTENSIONS: ${{ inputs.extensions }}
+        EXCLUSIONS: ${{ inputs.exclusions }}
+        MOTIFS_TEST: ${{ inputs.motifs-test }}
+      run: bash "${{ github.action_path }}/verifier.sh"
