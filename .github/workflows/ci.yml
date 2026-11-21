@@ -21,9 +21,9 @@ jobs:
           git config --global user.name "essai"
           git config --global init.defaultBranch main
       - name: Tests
-        run: bash tests/lancer.sh
+        run: bash tests/run.sh
       - name: shellcheck
-        run: shellcheck -x taille-fichiers/verifier.sh titre-pr/verifier.sh tests/*.sh
+        run: shellcheck -x taille-fichiers/check.sh titre-pr/check.sh tests/*.sh
 
   # Constance applique ses propres contrôles à ses PR.
   titre:
