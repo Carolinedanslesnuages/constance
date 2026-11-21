@@ -1,0 +1,44 @@
+name: Constance — nommage des fichiers
+description: Les fichiers ajoutés par la pull request s'écrivent en kebab-case, les composants Vue en PascalCase. Propose le bon nom. Les noms existants sont tolérés.
+author: Carolinedanslesnuages
+
+inputs:
+  extensions:
+    description: Extensions vérifiées, séparées par des espaces.
+    default: "ts tsx js jsx mjs cjs mts cts vue css scss"
+  exclusions:
+    description: Motifs ignorés, séparés par des espaces (comparés au chemin précédé de « / »).
+    default: "*/migrations/* */__tests__/* *.d.ts"
+  base:
+    description: Commit de base à comparer. Par défaut, la base de la pull request.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Récupérer le commit de base
+      id: base
+      shell: bash
+      env:
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+      run: |
+        if [ -z "$BASE" ]; then
+          echo "::notice title=Nommage des fichiers::Pas de pull request : rien à comparer, contrôle ignoré."
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "::error title=Nommage des fichiers::Le dépôt n'est pas récupéré : ajoutez « actions/checkout » avant ce contrôle."
+          exit 1
+        fi
+        git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch --no-tags --depth=1 origin "$BASE"
+        echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Vérifier les noms des fichiers ajoutés
+      if: steps.base.outputs.skip != 'true'
+      shell: bash
+      env:
+        BASE: ${{ steps.base.outputs.sha }}
+        EXTENSIONS: ${{ inputs.extensions }}
+        EXCLUSIONS: ${{ inputs.exclusions }}
+      run: bash "${{ github.action_path }}/check.sh"

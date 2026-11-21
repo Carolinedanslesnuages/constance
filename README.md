@@ -2,13 +2,15 @@
 
 Les mêmes règles de pull request dans tous vos dépôts, maintenues à un seul endroit.
 
-Constance regroupe trois contrôles GitHub Actions, faits pour des dépôts où une partie du code
+Constance regroupe cinq contrôles GitHub Actions, faits pour des dépôts où une partie du code
 est écrite par des assistants de code :
 
 | Contrôle | Ce qu'il vérifie |
 |---|---|
 | [Taille des fichiers](#taille-des-fichiers) | Un fichier, une responsabilité : pas de fichier de code ou de test trop long. |
 | [Titre de PR](#titre-de-pr) | Le titre suit Conventional Commits, pour que les versions soient calculées juste. |
+| [Nommage des fichiers](#nommage-des-fichiers) | Les fichiers ajoutés s'écrivent en kebab-case, les composants Vue en PascalCase. |
+| [Variables d'environnement](#variables-denvironnement) | Chaque variable lue par le code est déclarée dans `.env.example`. |
 | [Anti-fuite](#anti-fuite) | Aucun secret (clé, jeton, mot de passe) n'entre dans le dépôt. |
 
 ## Installation
@@ -39,6 +41,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: Carolinedanslesnuages/constance/taille-fichiers@v1
+
+  nommage:
+    name: Nommage des fichiers (kebab-case, PascalCase.vue)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Carolinedanslesnuages/constance/nommage-fichiers@v1
+
+  variables-env:
+    name: Variables d'environnement (.env.example)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Carolinedanslesnuages/constance/variables-env@v1
 
   anti-fuite:
     name: Anti-fuite (gitleaks)
@@ -136,6 +152,55 @@ gh api -X PATCH repos/<compte>/<dépôt> \
 Le contrôle prévient quand ce réglage n'est pas le bon, mais seulement si son jeton peut le
 lire : le jeton par défaut d'un workflow n'en a généralement pas le droit.
 
+## Nommage des fichiers
+
+Les fichiers **ajoutés ou renommés** par la PR s'écrivent en `kebab-case` (minuscules et tirets),
+les composants Vue en `PascalCase`. Un nom refusé reçoit une proposition :
+
+```text
+userService.ts      → user-service.ts
+HTTPClient.spec.ts  → http-client.spec.ts
+user-card.vue       → UserCard.vue
+```
+
+- **Noms existants** : tolérés tant qu'on ne les renomme pas. Un renommage vers un mauvais nom
+  est refusé.
+- Le nom vérifié est la partie avant le premier point : `user-service` dans
+  `user-service.spec.ts`.
+- Les fichiers cachés (`.eslintrc.cjs`…) suivent la convention de leur outil : ignorés.
+
+| Réglage | Par défaut | Rôle |
+|---|---|---|
+| `extensions` | `ts tsx js jsx mjs cjs mts cts vue css scss` | Extensions vérifiées. |
+| `exclusions` | `*/migrations/* */__tests__/* *.d.ts` | Motifs ignorés (les migrations portent souvent un horodatage et un nom de classe). |
+
+## Variables d'environnement
+
+Une variable d'environnement oubliée dans `.env.example` ne se voit qu'au premier lancement sur
+une autre machine. Le contrôle lit les **lignes ajoutées** par la PR et vérifie que chaque
+variable lue est déclarée dans `.env.example` :
+
+```ts
+process.env.DATABASE_URL
+process.env['API_KEY']
+import.meta.env.VITE_API_URL                        // Vite
+this.configService.getOrThrow<string>('JWT_SECRET')  // NestJS
+```
+
+- Une déclaration s'écrit `NOM=valeur` (ou `export NOM=valeur`). Ajoutez un commentaire au-dessus
+  qui dit à quoi elle sert.
+- **Variables déjà lues avant la PR** : tolérées.
+- **Tests** : ignorés par défaut, ils fixent souvent leurs propres variables.
+- **Variables fournies par le système, Node, Vite ou GitHub** (`NODE_ENV`, `MODE`, `GITHUB_*`…) :
+  ignorées.
+
+| Réglage | Par défaut | Rôle |
+|---|---|---|
+| `fichier-exemple` | `.env.example` | Fichier qui déclare les variables. |
+| `extensions` | `ts tsx js jsx mjs cjs mts cts vue` | Extensions lues. |
+| `exclusions` | `*.spec.* *.test.* */test/* */tests/* */e2e/* */__tests__/*` | Motifs ignorés. |
+| `ignorer` | `NODE_ENV CI HOME PATH PWD TZ LANG MODE DEV PROD SSR BASE_URL GITHUB_* RUNNER_*` | Variables à ne pas déclarer (motifs acceptés). |
+
 ## Anti-fuite
 
 [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 cherche des secrets dans les commits.
@@ -162,7 +227,8 @@ bash tests/run.sh
 
 Les tests créent des dépôts git jetables et vérifient chaque cas : fichier trop long, fichier
 existant toléré, renommé ou déplacé, seuils réglés, titres acceptés et refusés, suggestions,
-robots, et titre contenant une commande (jamais exécutée).
+robots, titre contenant une commande (jamais exécutée), noms de fichiers et propositions,
+variables déclarées, oubliées, tolérées ou ignorées.
 
 ## Licence
 

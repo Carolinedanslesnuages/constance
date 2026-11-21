@@ -1,0 +1,52 @@
+name: Constance — variables d'environnement
+description: Chaque variable d'environnement lue par le code ajouté dans la pull request est déclarée dans .env.example. Les variables déjà utilisées avant sont tolérées.
+author: Carolinedanslesnuages
+
+inputs:
+  fichier-exemple:
+    description: Fichier qui déclare les variables, avec une valeur d'exemple et un commentaire.
+    default: ".env.example"
+  extensions:
+    description: Extensions lues, séparées par des espaces.
+    default: "ts tsx js jsx mjs cjs mts cts vue"
+  exclusions:
+    description: Motifs ignorés, séparés par des espaces (comparés au chemin précédé de « / »). Par défaut, les tests.
+    default: "*.spec.* *.test.* */test/* */tests/* */e2e/* */__tests__/*"
+  ignorer:
+    description: Variables qui n'ont pas à être déclarées (fournies par le système, Node, Vite ou GitHub), séparées par des espaces. Les motifs (GITHUB_*) sont acceptés.
+    default: "NODE_ENV CI HOME PATH PWD TZ LANG MODE DEV PROD SSR BASE_URL GITHUB_* RUNNER_*"
+  base:
+    description: Commit de base à comparer. Par défaut, la base de la pull request.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Récupérer le commit de base
+      id: base
+      shell: bash
+      env:
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+      run: |
+        if [ -z "$BASE" ]; then
+          echo "::notice title=Variables d'environnement::Pas de pull request : rien à comparer, contrôle ignoré."
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "::error title=Variables d'environnement::Le dépôt n'est pas récupéré : ajoutez « actions/checkout » avant ce contrôle."
+          exit 1
+        fi
+        git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch --no-tags --depth=1 origin "$BASE"
+        echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Vérifier les variables lues par la PR
+      if: steps.base.outputs.skip != 'true'
+      shell: bash
+      env:
+        BASE: ${{ steps.base.outputs.sha }}
+        EXAMPLE_FILE: ${{ inputs.fichier-exemple }}
+        EXTENSIONS: ${{ inputs.extensions }}
+        EXCLUSIONS: ${{ inputs.exclusions }}
+        IGNORED: ${{ inputs.ignorer }}
+      run: bash "${{ github.action_path }}/check.sh"

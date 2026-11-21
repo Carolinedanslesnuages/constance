@@ -23,11 +23,11 @@ jobs:
       - name: Déplacer le repère de version majeure
         if: steps.release.outputs.release_created == 'true'
         env:
-          MAJEURE: v${{ steps.release.outputs.major }}
+          MAJOR_TAG: v${{ steps.release.outputs.major }}
           TAG: ${{ steps.release.outputs.tag_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch --tags
-          git tag -f "$MAJEURE" "$TAG"
-          git push -f origin "$MAJEURE"
+          git tag -f "$MAJOR_TAG" "$TAG"
+          git push -f origin "$MAJOR_TAG"
