@@ -25,7 +25,7 @@ jobs:
       - name: shellcheck
         run: shellcheck -x taille-fichiers/check.sh titre-pr/check.sh nommage-fichiers/check.sh variables-env/check.sh tests/*.sh
 
-  # Constance applique ses propres contrôles à ses PR.
+  # Constance applies its own checks to its pull requests.
   titre:
     name: Titre de PR (Conventional Commits)
     if: github.event_name == 'pull_request'
