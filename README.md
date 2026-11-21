@@ -157,7 +157,7 @@ gitleaks à votre projet.
 ## Développer Constance
 
 ```sh
-bash tests/lancer.sh
+bash tests/run.sh
 ```
 
 Les tests créent des dépôts git jetables et vérifient chaque cas : fichier trop long, fichier

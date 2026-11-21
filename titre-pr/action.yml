@@ -23,27 +23,27 @@ runs:
   using: composite
   steps:
     - name: Lire le réglage de fusion en squash
-      id: reglage
+      id: squash
       if: inputs.verifier-reglage-squash == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.jeton }}
-        DEPOT: ${{ github.repository }}
+        REPOSITORY: ${{ github.repository }}
       run: |
-        valeur=$(gh api "repos/$DEPOT" --jq '.squash_merge_commit_title // empty' 2>/dev/null || true)
-        echo "valeur=$valeur" >> "$GITHUB_OUTPUT"
+        value=$(gh api "repos/$REPOSITORY" --jq '.squash_merge_commit_title // empty' 2>/dev/null || true)
+        echo "value=$value" >> "$GITHUB_OUTPUT"
 
     - name: Vérifier le titre
       shell: bash
       env:
-        TITRE: ${{ github.event.pull_request.title }}
-        AUTEUR: ${{ github.event.pull_request.user.login }}
+        TITLE: ${{ github.event.pull_request.title }}
+        AUTHOR: ${{ github.event.pull_request.user.login }}
         TYPES: ${{ inputs.types }}
-        IGNORER_BOTS: ${{ inputs.ignorer-bots }}
-        REGLAGE_SQUASH: ${{ steps.reglage.outputs.valeur }}
-      run: bash "${{ github.action_path }}/verifier.sh"
+        IGNORE_BOTS: ${{ inputs.ignorer-bots }}
+        SQUASH_SETTING: ${{ steps.squash.outputs.value }}
+      run: bash "${{ github.action_path }}/check.sh"
 
-    # Option : l'emoji Rose correspond au type (action épinglée sur l'empreinte de son commit).
+    # Option: the Rose emoji matches the type (action pinned to its commit hash).
     - name: Vérifier l'emoji Rose
       if: inputs.rose == 'true'
       uses: Carolinedanslesnuages/rose@2dfd0171b64112ad1e812238a9cc7b47637e426f # v1.0.0
