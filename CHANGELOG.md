@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Carolinedanslesnuages/constance/compare/v1.1.0...v1.2.0) (2026-11-21)
+
+
+### Features
+
+* 🌸 contrôles du nommage des fichiers et des variables d'environnement ([#7](https://github.com/Carolinedanslesnuages/constance/issues/7)) ([264ac17](https://github.com/Carolinedanslesnuages/constance/commit/264ac17b70ae1f3027ed9a01abe7413209a0ca96))
+
 ## [1.1.0](https://github.com/Carolinedanslesnuages/constance/compare/v1.0.0...v1.1.0) (2026-11-21)
 
 
