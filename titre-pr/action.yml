@@ -15,6 +15,9 @@ inputs:
   jeton:
     description: Jeton utilisé pour lire le réglage de fusion.
     default: ${{ github.token }}
+  rose:
+    description: "Vérifier aussi l'emoji Rose du titre (« feat: 🌸 … »), voir https://github.com/Carolinedanslesnuages/rose. Les PR des robots ne sont pas vérifiées."
+    default: "false"
 
 runs:
   using: composite
@@ -39,3 +42,8 @@ runs:
         IGNORER_BOTS: ${{ inputs.ignorer-bots }}
         REGLAGE_SQUASH: ${{ steps.reglage.outputs.valeur }}
       run: bash "${{ github.action_path }}/verifier.sh"
+
+    # Option : l'emoji Rose correspond au type (action épinglée sur l'empreinte de son commit).
+    - name: Vérifier l'emoji Rose
+      if: inputs.rose == 'true'
+      uses: Carolinedanslesnuages/rose@2dfd0171b64112ad1e812238a9cc7b47637e426f # v1.0.0

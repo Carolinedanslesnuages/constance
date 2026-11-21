@@ -33,6 +33,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: ./titre-pr
+        with:
+          rose: "true"
 
   taille:
     name: Taille des fichiers (une responsabilité par fichier)
