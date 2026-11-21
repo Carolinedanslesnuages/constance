@@ -23,7 +23,7 @@ jobs:
       - name: Tests
         run: bash tests/run.sh
       - name: shellcheck
-        run: shellcheck -x taille-fichiers/check.sh titre-pr/check.sh tests/*.sh
+        run: shellcheck -x taille-fichiers/check.sh titre-pr/check.sh nommage-fichiers/check.sh variables-env/check.sh tests/*.sh
 
   # Constance applique ses propres contrôles à ses PR.
   titre:
@@ -43,6 +43,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: ./taille-fichiers
+        with:
+          extensions: "sh"
+
+  nommage:
+    name: Nommage des fichiers (kebab-case, PascalCase.vue)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: ./nommage-fichiers
         with:
           extensions: "sh"
 
