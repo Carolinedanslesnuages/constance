@@ -114,6 +114,11 @@ feat!: changer le format des adresses
 | `types` | `feat fix perf refactor docs test build ci chore style revert` | Types autorisés. |
 | `ignorer-bots` | `true` | Ne pas bloquer les PR des robots. |
 | `verifier-reglage-squash` | `true` | Prévenir si le réglage de fusion peut ignorer le titre. |
+| `rose` | `false` | Vérifier aussi l'emoji [Rose](https://github.com/Carolinedanslesnuages/rose) du titre (`feat: 🌸 …`). |
+
+Avec `rose: "true"`, chaque titre doit porter l'emoji de son type (🌸 `feat`, 🐞 `fix`…). Si le
+dépôt a sa propre liste (`.rose.json`), récupérez-le avant (`actions/checkout`) pour qu'elle soit
+lue. Le hook Git de Rose ajoute l'emoji tout seul à chaque commit, sur votre ordinateur.
 
 ### Le réglage à faire sur chaque dépôt
 
