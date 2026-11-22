@@ -35,6 +35,7 @@ expect "dangerouslySetInnerHTML : avertissement" 0 "HTML injecté" "$code" "$out
 
 check_line src/repo.ts 'db.query("SELECT * FROM users WHERE id = " + id);'
 expect "SQL par concaténation : avertissement" 0 "SQL assemblé avec du texte" "$code" "$output"
+# shellcheck disable=SC2016 # intended: a JavaScript template literal, kept as is
 check_line src/repo.ts 'db.query(`DELETE FROM orders WHERE id = ${orderId}`);'
 expect "SQL par interpolation : avertissement" 0 "SQL assemblé avec du texte" "$code" "$output"
 check_line app/repo.py 'cursor.execute(f"SELECT name FROM users WHERE id = {user_id}")'
