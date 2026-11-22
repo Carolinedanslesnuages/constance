@@ -69,6 +69,20 @@ write_code src/legacy.js "export function show(text) {" "    element.innerHTML =
 expect "motif déjà présent avant (code réindenté) : toléré" 0 "" "$code" "$output"
 if printf '%s' "$output" | grep -q "Motif dangereux"; then fail "  …rien signalé" "$output"; else pass "  …rien signalé"; fi
 
+# The tolerance counts copies: a dangerous line already in the file does not let the PR add one more.
+new_repository; write_code src/client.ts "const legacy = new https.Agent({ rejectUnauthorized: false }); // constance: autorisé" "const agent = new https.Agent({ rejectUnauthorized: false });"; commit_base
+write_code src/client.ts "const legacy = new https.Agent({ rejectUnauthorized: false }); // constance: autorisé" "const agent = new https.Agent({ rejectUnauthorized: false });" "const other = 1;" "const agent = new https.Agent({ rejectUnauthorized: false });"; commit_change; run_check env
+expect "une copie de plus d'une ligne dangereuse déjà présente : bloquée" 1 "::error file=src/client.ts,line=4,title=Motif dangereux : Vérification TLS désactivée" "$code" "$output"
+
+new_repository; write_code src/load.js "function a() {" "  try { load(); } catch (error) {}" "}" "function b() {}"; commit_base
+write_code src/load.js "function b() {}" "function a() {" "  try { load(); } catch (error) {}" "}"; commit_change; run_check env
+expect "ligne dangereuse déplacée dans le fichier, sans copie de plus : tolérée" 0 "" "$code" "$output"
+if printf '%s' "$output" | grep -q "Motif dangereux"; then fail "  …rien signalé" "$output"; else pass "  …rien signalé"; fi
+
+new_repository; write_code src/load.js "try { load(); } catch (error) {}"; commit_base
+write_code src/load.js "try { load(); } catch (error) {}" "try { save(); } catch (error) {}" "try { load(); } catch (error) {}"; commit_change; run_check env
+expect "catch vide identique ajouté une seconde fois : signalé" 0 "::warning file=src/load.js,line=3,title=Motif dangereux : Erreur avalée" "$code" "$output"
+
 new_repository; commit_base; write_code src/client.test.ts "new https.Agent({ rejectUnauthorized: false });"; commit_change; run_check env
 expect "fichier de test : ignoré" 0 "" "$code" "$output"
 

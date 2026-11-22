@@ -232,7 +232,10 @@ vide voulu). Chaque signalement est annoté sur sa ligne et explique le risque.
   (`// constance: autorisé, contenu nettoyé par DOMPurify`). L'exception est écrite dans le
   code, à côté de ce qu'elle permet, et relue en PR.
 - **Code déjà là** : une ligne qui existait déjà avant la PR (code déplacé ou réindenté) est
-  tolérée.
+  tolérée, tant que la PR n'en ajoute pas une copie de plus. Un second
+  `rejectUnauthorized: false` identique dans le même fichier est donc bien signalé. Limite
+  connue : une PR qui retire une copie et en ajoute une identique ailleurs dans le fichier garde
+  le même nombre, et passe.
 
 **Ce que le contrôle ne voit pas** : c'est une recherche de motifs, ligne par ligne. Il ne voit
 pas une requête SQL écrite sur plusieurs lignes, ni en minuscules (`select … from`), ni un `catch`
@@ -273,7 +276,7 @@ Les tests créent des dépôts git jetables et vérifient chaque cas : fichier t
 existant toléré, renommé ou déplacé, seuils réglés, titres acceptés et refusés, suggestions,
 robots, titre contenant une commande (jamais exécutée), noms de fichiers et propositions,
 variables déclarées, oubliées, tolérées ou ignorées, motifs dangereux signalés ou acceptés
-(faux positifs), exception écrite sur la ligne, code déjà présent toléré.
+(faux positifs), exception écrite sur la ligne, code déjà présent toléré, copie de plus signalée.
 
 ## Licence
 
