@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/Carolinedanslesnuages/constance/compare/v1.3.0...v1.3.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* 🐞 motifs dangereux : une copie de plus d'une ligne existante est signalée ([#14](https://github.com/Carolinedanslesnuages/constance/issues/14)) ([4598058](https://github.com/Carolinedanslesnuages/constance/commit/4598058762faa7e1999f453b4db2d0fe548c3823))
+
 ## [1.3.0](https://github.com/Carolinedanslesnuages/constance/compare/v1.2.0...v1.3.0) (2026-11-22)
 
 
