@@ -2,6 +2,9 @@
 
 Les mêmes règles de pull request dans tous vos dépôts, maintenues à un seul endroit.
 
+Le nom ne rend pas hommage à une personne : il vient du mot. La constance, c'est appliquer les
+mêmes règles partout, à chaque pull request.
+
 Constance regroupe six contrôles GitHub Actions, faits pour des dépôts où une partie du code
 est écrite par des assistants de code :
 
