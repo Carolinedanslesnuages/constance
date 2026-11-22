@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Carolinedanslesnuages/constance/compare/v1.2.0...v1.3.0) (2026-11-22)
+
+
+### Features
+
+* 🌸 contrôle des motifs dangereux ([#11](https://github.com/Carolinedanslesnuages/constance/issues/11)) ([5996fe5](https://github.com/Carolinedanslesnuages/constance/commit/5996fe50eb377418b89d4296fa026139103c2872))
+
 ## [1.2.0](https://github.com/Carolinedanslesnuages/constance/compare/v1.1.0...v1.2.0) (2026-11-21)
 
 
