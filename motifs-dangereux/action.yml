@@ -1,0 +1,44 @@
+name: Constance — motifs dangereux
+description: "Signale dans les lignes ajoutées par la PR les motifs connus pour ouvrir une faille : vérification TLS désactivée (bloque), CORS ouvert à tous, HTML injecté, SQL assemblé avec du texte, erreur avalée (avertissements). Exception voulue : « constance: autorisé » sur la ligne."
+author: Carolinedanslesnuages
+
+inputs:
+  extensions:
+    description: "Extensions lues, séparées par des espaces."
+    default: "ts tsx js jsx mjs cjs mts cts vue py"
+  exclusions:
+    description: "Motifs ignorés, séparés par des espaces (comparés au chemin précédé de « / »). Par défaut, les tests."
+    default: "*.spec.* *.test.* */test/* */tests/* */e2e/* */__tests__/* */test_*.py *_test.py"
+  base:
+    description: "Commit de base à comparer. Par défaut, la base de la pull request."
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Récupérer le commit de base
+      id: base
+      shell: bash
+      env:
+        BASE: ${{ inputs.base || github.event.pull_request.base.sha }}
+      run: |
+        if [ -z "$BASE" ]; then
+          echo "::notice title=Motifs dangereux::Pas de pull request : rien à comparer, contrôle ignoré."
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if ! git rev-parse --git-dir >/dev/null 2>&1; then
+          echo "::error title=Motifs dangereux::Le dépôt n'est pas récupéré : ajoutez « actions/checkout » avant ce contrôle."
+          exit 1
+        fi
+        git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch --no-tags --depth=1 origin "$BASE"
+        echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Chercher les motifs dangereux dans les lignes ajoutées
+      if: steps.base.outputs.skip != 'true'
+      shell: bash
+      env:
+        BASE: ${{ steps.base.outputs.sha }}
+        EXTENSIONS: ${{ inputs.extensions }}
+        EXCLUSIONS: ${{ inputs.exclusions }}
+      run: bash "${{ github.action_path }}/check.sh"

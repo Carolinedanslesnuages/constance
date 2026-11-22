@@ -2,7 +2,7 @@
 
 Les mêmes règles de pull request dans tous vos dépôts, maintenues à un seul endroit.
 
-Constance regroupe cinq contrôles GitHub Actions, faits pour des dépôts où une partie du code
+Constance regroupe six contrôles GitHub Actions, faits pour des dépôts où une partie du code
 est écrite par des assistants de code :
 
 | Contrôle | Ce qu'il vérifie |
@@ -11,6 +11,7 @@ est écrite par des assistants de code :
 | [Titre de PR](#titre-de-pr) | Le titre suit Conventional Commits, pour que les versions soient calculées juste. |
 | [Nommage des fichiers](#nommage-des-fichiers) | Les fichiers ajoutés s'écrivent en kebab-case, les composants Vue en PascalCase. |
 | [Variables d'environnement](#variables-denvironnement) | Chaque variable lue par le code est déclarée dans `.env.example`. |
+| [Motifs dangereux](#motifs-dangereux) | Aucun motif connu pour ouvrir une faille (TLS désactivé, CORS ouvert, HTML injecté, SQL assemblé, erreur avalée). |
 | [Anti-fuite](#anti-fuite) | Aucun secret (clé, jeton, mot de passe) n'entre dans le dépôt. |
 
 ## Installation
@@ -55,6 +56,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: Carolinedanslesnuages/constance/variables-env@v1
+
+  motifs:
+    name: Motifs dangereux (TLS, CORS, HTML, SQL, erreurs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: Carolinedanslesnuages/constance/motifs-dangereux@v1
 
   anti-fuite:
     name: Anti-fuite (gitleaks)
@@ -201,6 +209,39 @@ this.configService.getOrThrow<string>('JWT_SECRET')  // NestJS
 | `exclusions` | `*.spec.* *.test.* */test/* */tests/* */e2e/* */__tests__/*` | Motifs ignorés. |
 | `ignorer` | `NODE_ENV CI HOME PATH PWD TZ LANG MODE DEV PROD SSR BASE_URL GITHUB_* RUNNER_*` | Variables à ne pas déclarer (motifs acceptés). |
 
+## Motifs dangereux
+
+Un agent écrit vite des motifs connus pour ouvrir une faille. Le contrôle les cherche dans les
+**lignes ajoutées** par la PR (tests exclus) :
+
+| Motif | Exemple | Effet |
+|---|---|---|
+| Vérification TLS désactivée | `rejectUnauthorized: false`, `verify=False` | 🔴 bloque |
+| CORS ouvert à tous | `Access-Control-Allow-Origin: *`, `origin: '*'` | 🟠 avertit |
+| HTML injecté | `innerHTML =` et `+=`, `v-html`, `dangerouslySetInnerHTML` | 🟠 avertit |
+| SQL assemblé avec du texte | `"SELECT … FROM " + id`, `` `DELETE FROM … ${id}` ``, f-string Python | 🟠 avertit |
+| Erreur avalée | `catch {}`, `except: pass` | 🟠 avertit |
+
+Seul le TLS désactivé bloque : les autres motifs sont parfois légitimes (HTML nettoyé, `catch`
+vide voulu). Chaque signalement est annoté sur sa ligne et explique le risque.
+
+- **Exception voulue** : `constance: autorisé` en commentaire sur la ligne, avec la raison
+  (`// constance: autorisé, contenu nettoyé par DOMPurify`). L'exception est écrite dans le
+  code, à côté de ce qu'elle permet, et relue en PR.
+- **Code déjà là** : une ligne qui existait déjà avant la PR (code déplacé ou réindenté) est
+  tolérée.
+
+**Ce que le contrôle ne voit pas** : c'est une recherche de motifs, ligne par ligne. Il ne voit
+pas une requête SQL écrite sur plusieurs lignes, ni en minuscules (`select … from`), ni un `catch`
+vide sur deux lignes, ni une valeur dangereuse qui arrive d'un autre fichier. Pour suivre les
+données d'un bout à l'autre, activez **CodeQL** (analyse de code de GitHub, gratuite pour les
+dépôts publics) ; Reine vérifie qu'il est activé.
+
+| Réglage | Par défaut | Rôle |
+|---|---|---|
+| `extensions` | `ts tsx js jsx mjs cjs mts cts vue py` | Extensions lues. |
+| `exclusions` | les tests (`*.spec.*`, `*.test.*`, `*/test/*`…) | Motifs ignorés. |
+
 ## Anti-fuite
 
 [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 cherche des secrets dans les commits.
@@ -228,7 +269,8 @@ bash tests/run.sh
 Les tests créent des dépôts git jetables et vérifient chaque cas : fichier trop long, fichier
 existant toléré, renommé ou déplacé, seuils réglés, titres acceptés et refusés, suggestions,
 robots, titre contenant une commande (jamais exécutée), noms de fichiers et propositions,
-variables déclarées, oubliées, tolérées ou ignorées.
+variables déclarées, oubliées, tolérées ou ignorées, motifs dangereux signalés ou acceptés
+(faux positifs), exception écrite sur la ligne, code déjà présent toléré.
 
 ## Licence
 
