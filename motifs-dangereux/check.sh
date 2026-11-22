@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Constance — dangerous patterns: code patterns known to open a security hole.
 #
-# Only lines added by the pull request are read, tests excluded. A line that already existed
-# before the PR (same file, same text) is tolerated. A line holding « constance: autorisé » is
-# skipped: the exception is written in the code, next to what it allows.
+# Only lines added by the pull request are read, tests excluded. A dangerous line that already
+# existed before the PR (same file, same text once trimmed) is tolerated as long as the PR does not
+# add more copies of it: moved or reindented code passes, one more copy is reported. Known limit:
+# a PR that removes one copy and adds an identical one elsewhere in the file keeps the count equal,
+# so it passes (no more risk than before). A line holding « constance: autorisé » is skipped: the
+# exception is written in the code, next to what it allows.
 #
 # Blocking (error): TLS certificate checks turned off.
 # Warning only: CORS open to everyone, HTML injected, SQL built from text, empty catch. These
@@ -73,13 +76,23 @@ advice_of() {
   esac
 }
 
+trimmed_lines() { sed -E 's/^[[:space:]]+|[[:space:]]+$//g'; }
+
+# How many lines of a file, at a revision, equal the given (trimmed) text. 0 when the file is absent.
+copies_at() { # $1: revision, $2: path, $3: trimmed text
+  local count
+  count=$(git show "$1:$2" 2>/dev/null | trimmed_lines | grep -cxF -- "$3")
+  printf '%s' "${count:-0}"
+}
+
 failed=0
 summary_rows=""
 while IFS=$'\t' read -r file_path line_number rule added_text; do
   matches_any "$file_path" "$EXCLUSIONS" && continue
-  # Tolerated when the very same line already existed before the PR (moved or reindented code).
-  trimmed="$(printf '%s' "$added_text" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
-  if git show "$BASE:$file_path" 2>/dev/null | sed -E 's/^[[:space:]]+|[[:space:]]+$//g' | grep -qxF -- "$trimmed"; then continue; fi
+  # Tolerated when the PR adds no copy of a line that already existed (moved or reindented code).
+  # Only lines found by the patterns get here: a few per PR, so two « git show » each cost nothing.
+  trimmed="$(printf '%s' "$added_text" | trimmed_lines)"
+  if [ "$(copies_at "$HEAD_REF" "$file_path" "$trimmed")" -le "$(copies_at "$BASE" "$file_path" "$trimmed")" ]; then continue; fi
   level="warning"
   [ "$rule" = "tls" ] && level="error" && failed=1
   echo "::$level file=$file_path,line=$line_number,title=Motif dangereux : $(title_of "$rule")::$(advice_of "$rule") Si c'est voulu, ajoutez « constance: autorisé » en commentaire sur la ligne."
